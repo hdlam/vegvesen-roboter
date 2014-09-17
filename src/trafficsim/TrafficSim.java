@@ -24,7 +24,7 @@ import org.lwjgl.opengl.GL11;
 public class TrafficSim {
 
 	Terrain map = new Terrain();
-	Robot[] prototype = new Robot[20];
+	Robot[] prototype = new Robot[8];
 	//Robot prototype = new Robot(400, 400, 0, map);
 	static boolean redlight = false;
 	int size = 6;
@@ -91,7 +91,13 @@ public class TrafficSim {
 				prototypeX = (int) prototype[i].Xpos;
 				prototypeY = (int) prototype[i].Ypos;
 				double a = prototype[i].currentAngle;
-				GL11.glColor3f(0.3f, 0.5f, 2f);
+				if(prototype[i].getCol() == 0)
+					GL11.glColor3f(1f, 1f, 1f);
+				else if(prototype[i].getCol() == 1)
+					GL11.glColor3f(1f, 0.5f, 0.5f);
+				else
+					GL11.glColor3f(0.3f, 0.5f, 1f);
+				
 				GL11.glBegin(GL11.GL_QUADS);
 				GL11.glVertex2d(prototypeX + size * Math.cos(a) - 1 * Math.sin(a),
 						prototypeY + size * Math.sin(a) + 1 * Math.cos(a));

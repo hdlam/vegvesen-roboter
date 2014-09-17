@@ -26,12 +26,13 @@ public class Robot {
 	double targetY;
 	double speed = 0;
 	double mxspd = 50;
-	double accel = 15000; 
-	double deacc = 15;
+	double accel = 150000; 
+	double deacc = 50;
 	double turn = 0;
 	double mxturn = 1;
 	double lookAhead = mxspd * 4;
 	Robot robotAhead;
+	int col, driveAheadCounter;
 	/*
 	 * 	double speed = 0;
 	double mxspd = 50;
@@ -54,9 +55,13 @@ public class Robot {
 		currentAngle = initAngle;
 		map = terrain;
 		findClosestPoint();
-
+		col = driveAheadCounter = 0;
 	}
-
+	
+	public int getCol(){
+		return col;
+	}
+	
 	public void moveCalc() {
 		targetDistance = Math.sqrt((targetY - Ypos) * (targetY - Ypos) + (targetX - Xpos) * (targetX - Xpos));
 
@@ -76,51 +81,72 @@ public class Robot {
 
 
 		//Using Brooks subsumption
-		if (redLightAhead()) {
+		if (redLightAhead() && mapTarget == 6) {
+			
 			turnToTarget(delta);
 			deaccelerate(delta);
 		} else if (driverAhead()) {
+			if(driveAheadCounter > 500){
+				reverseSpin();
+				driveAheadCounter=0;
+				
+			}
 			turnToTarget(delta);
+			driveAheadCounter++;
 			deaccelerate(delta);
 		} else if (nodeReached()) {
+			driveAheadCounter=0;
 			nextTarget(delta);
 		} else if (goingInCircles()) {
+			driveAheadCounter=0;
 			nextTarget(delta);
 		} else {
+			driveAheadCounter=0;
 			turnToTarget(delta);
 			accelerate(delta);
 		}
 	}
+	private void reverseSpin() {
+		spinLeft(1.5);
+		
+	}
+
 	boolean redLightAhead() {
 		//use timer?
 		return TrafficSim.redlight;
 	}
 
 	boolean driverAhead() {
+//		System.out.println(currentAngle);
+//		System.out.println("\n\n" + this + ":\n");
 		ArrayList<Robot> candidates = new ArrayList<>();
-		if (map.listBots(mapTarget) != null) {
-			candidates.addAll(map.listBots(mapTarget));
-		}
-		
-		double coveredDistance = targetDistance;
-		int node = mapTarget;
-		/*while (coveredDistance < lookAhead) {
-			node++;
-			if (node == map.getLength()) {
-				node = 0;
-			}
-			if (map.listBots(node) != null) {
-				candidates.addAll(map.listBots(node));
-			}
-			coveredDistance += map.distanceTo(node);
-		}*/
-		if (candidates.isEmpty()) {
+//		System.out.println(this);
+		candidates = map.nearbyBots(this.Ypos, this.Xpos);
+//		if (map.listBots(mapTarget) != null) {
+//			candidates.addAll(map.listBots(mapTarget));
+//		}
+//		
+//		double coveredDistance = targetDistance;
+//		int node = mapTarget;
+//		while (coveredDistance < lookAhead) {
+//			node++;
+//			if (node == map.getLength()) {
+//				node = 0;
+//			}
+//			if (map.listBots(node) != null) {
+//				candidates.addAll(map.listBots(node));
+//			}
+//			coveredDistance += map.distanceTo(node);
+//		}
+//		System.out.println("size: " + candidates.size());
+//		System.out.println("list: " + candidates);
+		if (candidates.size() <= 1) {
 			//No drivers nearby at all.
 			return false;
 		} else {
 			//find the closest robot
 			Robot next = null;
-			Double distance = Double.MAX_VALUE;
+			Double distance = 200.0;
 			for (int i = 0; i < candidates.size(); i++) {
 				Robot robot = candidates.get(i);
 				if(robot == this) //ignore itself
@@ -128,21 +154,29 @@ public class Robot {
 				double robotY = robot.Ypos;
 				double robotX = robot.Xpos;
 				double robotDistance = Math.sqrt((robotY - Ypos) * (robotY - Ypos) + (robotX - Xpos) * (robotX - Xpos));
-				double robotAngle = Math.abs(Math.atan2((robotY - Ypos), (robotX - Xpos)));
-				if (robotAngle < Math.PI/3) {
-					if (robotDistance < distance){
-						distance = robotDistance;
+				double robotAngle = Math.atan2((robotY - Ypos), (robotX - Xpos));
+//				System.out.println(robotAngle + "\n");
+				if (Math.abs(robotAngle-currentAngle) < Math.PI/5) {
+					if (robotDistance < 100){
+						col = 1;
+						robot.col = 2;
 						next = robot;
+						return true;
 					}
 				}
 			}
+			return false;
+			/*
 			if (next == null){
+//				System.out.println("All behind");
 				//they are all behind us. Carry on.
+				col = 0;
 				return false;
 			} else {
+				col = 1;
 				robotAhead = next;
 				return true;
-			}
+			}*/
 		}
 	}
 
@@ -204,7 +238,7 @@ public class Robot {
 	
 	void deaccelerate(long delta){
 		double step = ((double) delta) / 1000d;
-		speed -= accel 	 * step;
+		speed -= deacc 	 * step;
 		if (speed < 0) {
 			speed = 0;
 		}

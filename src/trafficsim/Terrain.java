@@ -86,8 +86,28 @@ public class Terrain {
 		robotFinder.get(loc).add(rob);
 	}
 	public ArrayList<Robot> listBots(int loc){
+//		System.out.println(robotFinder.get(loc));
 		return robotFinder.get(loc);
 	}
+	
+	public ArrayList<Robot> nearbyBots(double y, double x){
+		ArrayList<Robot> nearby = new ArrayList<Robot>();
+		for (int i = 0; i < robotFinder.size(); i++) {
+			for (int j = 0; j < robotFinder.get(i).size(); j++) {
+				Robot temp = robotFinder.get(i).get(j);
+				Double dist = Math.sqrt((temp.Ypos - y) * (temp.Ypos - y) + (temp.Xpos - x) * (temp.Xpos - x));
+				if(dist < 150){//&& dist > 0){
+//					System.out.println("x: " + x + "\ty:" + y);
+//					System.out.println("tx: " + temp.Xpos + "\tty:" + temp.Ypos);
+//					System.out.println(temp + " added, dist is " + dist + "\n\n");
+					nearby.add(temp);
+				}
+			}
+		}
+		return nearby;
+	}
+	
+	
 	public double distanceTo(int id){
 		int last = id -1;
 		if (last == -1) {
