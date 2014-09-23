@@ -26,10 +26,11 @@ public class Robot {
 	double targetY;
 	double speed = 0;
 	double mxspd = 50;
-	double accel = 150000; 
-	double deacc = 50;
+	double accel = 15; 
+	double deacc = 25;
 	double turn = 0;
 	double mxturn = 1;
+	double speedOfCarInFront = mxspd;
 	double lookAhead = mxspd * 4;
 	Robot robotAhead;
 	int col, driveAheadCounter;
@@ -68,7 +69,7 @@ public class Robot {
 		targetAngle = Math.atan2((targetY - Ypos), (targetX - Xpos));
 		
 		turn = mxturn * Math.sqrt(speed / mxspd);
-
+		
 		refractor();
 	}
 
@@ -79,24 +80,35 @@ public class Robot {
 		Ypos += Math.sin(currentAngle) * speed * step;
 		moveCalc();
 
-
 		//Using Brooks subsumption
 		if (redLightAhead() && mapTarget == 6) {
 			
 			turnToTarget(delta);
 			deaccelerate(delta);
-		} else if (driverAhead()) {
-			if(driveAheadCounter > 500){
-				reverseSpin();
-				driveAheadCounter=0;
-				
-			}
-			turnToTarget(delta);
-			driveAheadCounter++;
-			deaccelerate(delta);
 		} else if (nodeReached()) {
 			driveAheadCounter=0;
 			nextTarget(delta);
+		} else if (driverAhead()){
+			if(TrafficSim.smartCarSim){
+				Robot robotInFront = nearestDriverAhead();
+				if(robotInFront != null)
+				{
+					if(Math.abs(robotInFront.currentAngle - currentAngle) < Math.PI/5){
+						drive(delta, robotInFront);
+					}
+					else 
+						deaccelerate(delta);
+				}
+				else 
+					accelerate(delta);
+//				if()
+//				deaccelerate(delta);
+				
+			}
+			else
+				deaccelerate(delta);
+			turnToTarget(delta);
+			
 		} else if (goingInCircles()) {
 			driveAheadCounter=0;
 			nextTarget(delta);
@@ -111,42 +123,18 @@ public class Robot {
 		
 	}
 
-	boolean redLightAhead() {
-		//use timer?
+	private boolean redLightAhead() {
 		return TrafficSim.redlight;
 	}
 
 	boolean driverAhead() {
-//		System.out.println(currentAngle);
-//		System.out.println("\n\n" + this + ":\n");
 		ArrayList<Robot> candidates = new ArrayList<>();
-//		System.out.println(this);
 		candidates = map.nearbyBots(this.Ypos, this.Xpos);
-//		if (map.listBots(mapTarget) != null) {
-//			candidates.addAll(map.listBots(mapTarget));
-//		}
-//		
-//		double coveredDistance = targetDistance;
-//		int node = mapTarget;
-//		while (coveredDistance < lookAhead) {
-//			node++;
-//			if (node == map.getLength()) {
-//				node = 0;
-//			}
-//			if (map.listBots(node) != null) {
-//				candidates.addAll(map.listBots(node));
-//			}
-//			coveredDistance += map.distanceTo(node);
-//		}
-//		System.out.println("size: " + candidates.size());
-//		System.out.println("list: " + candidates);
 		if (candidates.size() <= 1) {
 			//No drivers nearby at all.
 			return false;
 		} else {
 			//find the closest robot
-			Robot next = null;
-			Double distance = 200.0;
 			for (int i = 0; i < candidates.size(); i++) {
 				Robot robot = candidates.get(i);
 				if(robot == this) //ignore itself
@@ -155,28 +143,48 @@ public class Robot {
 				double robotX = robot.Xpos;
 				double robotDistance = Math.sqrt((robotY - Ypos) * (robotY - Ypos) + (robotX - Xpos) * (robotX - Xpos));
 				double robotAngle = Math.atan2((robotY - Ypos), (robotX - Xpos));
-//				System.out.println(robotAngle + "\n");
-				if (Math.abs(robotAngle-currentAngle) < Math.PI/5) {
-					if (robotDistance < 100){
+				if (Math.abs(robotAngle-currentAngle) < TrafficSim.angle) {
+					if(robotDistance < 15)
+						return true;
+					if (robotDistance < TrafficSim.distance*speed*0.1){
 						col = 1;
 						robot.col = 2;
-						next = robot;
 						return true;
 					}
 				}
 			}
+			col = 0;
 			return false;
-			/*
-			if (next == null){
-//				System.out.println("All behind");
-				//they are all behind us. Carry on.
-				col = 0;
-				return false;
-			} else {
-				col = 1;
-				robotAhead = next;
-				return true;
-			}*/
+		}
+	}
+	Robot nearestDriverAhead() {
+		ArrayList<Robot> candidates = new ArrayList<>();
+		candidates = map.nearbyBots(this.Ypos, this.Xpos);
+		if (candidates.size() <= 1) {
+			//No drivers nearby at all.
+			return null;
+		} else {
+			//find the closest robot
+			Robot next = null;
+			for (int i = 0; i < candidates.size(); i++) {
+				Robot robot = candidates.get(i);
+				if(robot == this) //ignore itself
+					continue;
+				double robotY = robot.Ypos;
+				double robotX = robot.Xpos;
+				double robotDistance = Math.sqrt((robotY - Ypos) * (robotY - Ypos) + (robotX - Xpos) * (robotX - Xpos));
+				double robotAngle = Math.atan2((robotY - Ypos), (robotX - Xpos));
+				if (Math.abs(robotAngle-currentAngle) < TrafficSim.angle) {
+					if(robotDistance < 15)
+						return robot;
+					if (robotDistance < TrafficSim.distance*speed*0.1+6 && (next == null || distanceTo(next)> robotDistance)){
+						col = 1;
+						robot.col = 2;
+						next = robot;
+					}
+				}
+			}
+			return next;
 		}
 	}
 
@@ -226,6 +234,30 @@ public class Robot {
 			}
 		}
 	}
+	
+	boolean isDriving(){
+		return (speed > 0) ;
+	}
+	
+	double getSpeed(){
+		return speed;
+	}
+	
+	double distanceTo(Robot robot){
+		return Math.sqrt((robot.Ypos - Ypos) * (robot.Ypos - Ypos) + (robot.Xpos - Xpos) * (robot.Xpos - Xpos));
+	}
+	
+	
+	private void drive(long delta, Robot robot) {
+		if(robot == null)
+			accelerate(delta);
+		else if(speed > robot.getSpeed())
+			deaccelerate(delta);
+		else
+			accelerate(delta);
+		
+
+	}
 
 	void accelerate(long delta) {
 		double step = ((double) delta) / 1000d;
@@ -238,62 +270,21 @@ public class Robot {
 	
 	void deaccelerate(long delta){
 		double step = ((double) delta) / 1000d;
-		speed -= deacc 	 * step;
+		speed -= deacc 	* step;
+		if (speed < 0) {
+			speed = 0;
+		}
+	}
+	void deaccelerate(long delta, double dist){
+		double step = ((double) delta) / 1000d;
+		speed -= deacc 	 * step* (5/dist);
 		if (speed < 0) {
 			speed = 0;
 		}
 	}
 
-	void tempo(long delta) {
-		double step = ((double) delta) / 1000d;
-		Xpos += Math.cos(currentAngle) * speed * step;
-		Ypos += Math.sin(currentAngle) * speed * step;
-
-		moveCalc();
-		double rotate = turn * step;
-		if (Math.abs(currentAngle - targetAngle) < rotate) {
-			rotate = Math.abs(currentAngle - targetAngle);
-		}
-
-		//Adjust angle
-
-		if (targetDistance < 10) {
-			mapTarget++;
-			if (mapTarget == map.getLength()) {
-				mapTarget = 0;
-			}
-			//moveTo(map.get(mapTarget));
-			move(delta);
-			return;
-		}
-		if (targetAngle + Math.PI == currentAngle || targetAngle - Math.PI == currentAngle) {
-			//Directly behind us, turn!
-			spinRight(rotate);
-		} else if (targetAngle > 0) {
-			if (currentAngle > targetAngle || currentAngle < targetAngle - Math.PI) {
-				spinRight(rotate);
-			} else {
-				spinLeft(rotate);
-			}
-		} else {
-			if (currentAngle < targetAngle || currentAngle > targetAngle + Math.PI) {
-				spinLeft(rotate);
-			} else {
-				spinRight(rotate);
-			}
-		}
-		if (spinCounter > Math.PI) {
-			mapTarget++;
-			if (mapTarget == map.getLength()) {
-				mapTarget = 0;
-			}
-			spinCounter = 0;
-			//moveTo(map.get(mapTarget));
-		}
-		refractor();
-	}
-
 	void spinRight(double rotate) {
+//		number of right rotation is here, named rotate
 		currentAngle -= rotate;
 		if (!goingLeft) {
 			spinCounter += rotate;
@@ -304,6 +295,7 @@ public class Robot {
 	}
 
 	void spinLeft(double rotate) {
+//		number of left rotation is here, named rotate
 		currentAngle += rotate;
 		if (goingLeft) {
 			spinCounter += rotate;
@@ -313,7 +305,7 @@ public class Robot {
 		}
 	}
 
-	private void refractor() {
+	private void refractor() { //makes sure that the angle is always inside [-PI, PI]
 		if (currentAngle > Math.PI) {
 			currentAngle -= 2 * Math.PI;
 		} else if (currentAngle < -Math.PI) {

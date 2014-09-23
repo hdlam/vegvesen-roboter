@@ -96,10 +96,7 @@ public class Terrain {
 			for (int j = 0; j < robotFinder.get(i).size(); j++) {
 				Robot temp = robotFinder.get(i).get(j);
 				Double dist = Math.sqrt((temp.Ypos - y) * (temp.Ypos - y) + (temp.Xpos - x) * (temp.Xpos - x));
-				if(dist < 150){//&& dist > 0){
-//					System.out.println("x: " + x + "\ty:" + y);
-//					System.out.println("tx: " + temp.Xpos + "\tty:" + temp.Ypos);
-//					System.out.println(temp + " added, dist is " + dist + "\n\n");
+				if(dist < TrafficSim.distance*2){//&& dist > 0){
 					nearby.add(temp);
 				}
 			}

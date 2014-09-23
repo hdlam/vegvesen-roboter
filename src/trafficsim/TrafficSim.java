@@ -5,6 +5,7 @@
 package trafficsim;
 
 import java.awt.Point;
+import java.awt.RenderingHints.Key;
 import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -26,13 +27,18 @@ public class TrafficSim {
 	Terrain map = new Terrain();
 	Robot[] prototype = new Robot[8];
 	//Robot prototype = new Robot(400, 400, 0, map);
-	static boolean redlight = false;
+	static boolean redlight = false, smartCarSim = false;
 	int size = 6;
+	boolean zKeyIsDown = false, xKeyIsDown = false;;
+	int w = 800,h = 800; //152 * 124
 	
+	//Threshold values
+	static double distance = 50;
+	static double angle = Math.PI/5;
 	
 	public void start() throws InterruptedException {
 		try {
-			Display.setDisplayMode(new DisplayMode(800, 800));
+			Display.setDisplayMode(new DisplayMode(w, h));
 			Display.create();
 		} catch (LWJGLException e) {
 			e.printStackTrace();
@@ -43,37 +49,54 @@ public class TrafficSim {
 		ArrayList<Point> track = map.getTrack();
 		GL11.glMatrixMode(GL11.GL_PROJECTION);
 		GL11.glLoadIdentity();
-		GL11.glOrtho(0, 800, 0, 800, 1, -1);
+		GL11.glOrtho(0, w, 0, h, 1, -1);
 		GL11.glMatrixMode(GL11.GL_MODELVIEW);
 		long lastTime = getTime();
 		int prototypeX;
 		int prototypeY;
 		for (int i = 0; i < prototype.length; i++) {
-			prototype[i] = new Robot(800 * Math.random(), 800 * Math.random(), 2 * Math.PI * Math.random() - Math.PI, map);
+			prototype[i] = new Robot(w * Math.random(), h * Math.random(), 2 * Math.PI * Math.random() - Math.PI, map);
 
 		}
 
 		while (!Display.isCloseRequested()) {
-			if(Keyboard.isKeyDown(Keyboard.KEY_X)){
-				GL11.glColor3f(1f, 0.1f, 0.1f);
-				redlight = true;
+			//keyboard inputs
+			if(Keyboard.isKeyDown(Keyboard.KEY_Q))
+				System.exit(0);
+			if(Keyboard.isKeyDown(Keyboard.KEY_X) && !xKeyIsDown){
+				redlight = !redlight;
+				xKeyIsDown = true;
 			}
-			else{
-				GL11.glColor3f(0.1f, 1f, 0.1f);
-				redlight = false;
+			if (Keyboard.isKeyDown(Keyboard.KEY_Z) && !zKeyIsDown) {
+				zKeyIsDown = true;
+				smartCarSim = !smartCarSim;
 			}
+			if(!Keyboard.isKeyDown(Keyboard.KEY_Z))
+				zKeyIsDown = false;
+			if(!Keyboard.isKeyDown(Keyboard.KEY_X))
+				xKeyIsDown = false;
+			
+			
+			
 			// render OpenGL here
 			GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
-			
-			//square
-			GL11.glBegin(GL11.GL_QUADS);
-	        GL11.glVertex2f(50,600);
-	        GL11.glVertex2f(50+50,600);
-	        GL11.glVertex2f(50+50,600+50);
-	        GL11.glVertex2f(50,600+50);
-	        GL11.glEnd();
-	        
+			if(smartCarSim){
+				GL11.glColor3f(1f, 1.0f, 0.1f);
+				GL11.glBegin(GL11.GL_QUADS);
+		        GL11.glVertex2f(50,600);
+		        GL11.glVertex2f(50+50,600);
+		        GL11.glVertex2f(50+50,600+50);
+		        GL11.glVertex2f(50,600+50);
+		        GL11.glEnd();
+			}
+	        			
 			for (int i = 0; i < track.size(); i++) {
+				if(i == 5 && redlight){
+					GL11.glColor3f(1f, 0.1f, 0.1f);
+				}
+				else
+					GL11.glColor3f(0.1f, 1f, 0.1f);
+					
 				GL11.glBegin(GL11.GL_LINES);
 				GL11.glVertex2d(track.get(i).getX(), track.get(i).getY());
 				GL11.glVertex2d(track.get((i + 1) % track.size()).getX(), track.get((i + 1) % track.size()).getY());
@@ -112,8 +135,6 @@ public class TrafficSim {
 			lastTime = getTime();
 			Thread.sleep(16);
 			Display.update();
-			if(Keyboard.isKeyDown(Keyboard.KEY_Q))
-				System.exit(0);
 		}
 		
 		Display.destroy();
