@@ -19,6 +19,36 @@ public class Terrain {
         track = new ArrayList<>();
         int xOffset = 260;
         int yOffset = 60;
+        
+        track.add(new Point(100, 135));
+        track.add(new Point(148, 88));
+        track.add(new Point(215, 67));
+        track.add(new Point(282, 77));
+        track.add(new Point(336, 118));
+        track.add(new Point(367, 178));
+        track.add(new Point(400, 319)); //kryss
+        track.add(new Point(434, 463));
+        track.add(new Point(464, 524));
+        track.add(new Point(520, 563));
+        track.add(new Point(586, 575));
+        track.add(new Point(649, 554));
+        track.add(new Point(700, 505));
+        track.add(new Point(721, 439));
+        track.add(new Point(711, 372));
+        track.add(new Point(672, 317));
+        track.add(new Point(612, 286));
+        track.add(new Point(543, 286));
+        track.add(new Point(400, 319)); //kryss
+        track.add(new Point(257, 355));
+        track.add(new Point(190, 355));
+        track.add(new Point(131, 326));
+        track.add(new Point(90, 271));
+        track.add(new Point(80, 203));
+        
+        
+        
+        
+        /*
         track.add(new Point(140+xOffset,  0+yOffset));
         track.add(new Point(220+xOffset, 20+yOffset));
         track.add(new Point(260+xOffset, 60+yOffset));
@@ -43,7 +73,7 @@ public class Terrain {
         track.add(new Point(  0+xOffset,140+yOffset));
         track.add(new Point( 20+xOffset, 60+yOffset));
         track.add(new Point( 60+xOffset, 20+yOffset));
-		
+		*/
 		
 		robotFinder = new ArrayList<>();
 		for (int i = 0; i < track.size(); i++) {
@@ -95,8 +125,8 @@ public class Terrain {
 		for (int i = 0; i < robotFinder.size(); i++) {
 			for (int j = 0; j < robotFinder.get(i).size(); j++) {
 				Robot temp = robotFinder.get(i).get(j);
-				Double dist = Math.sqrt((temp.Ypos - y) * (temp.Ypos - y) + (temp.Xpos - x) * (temp.Xpos - x));
-				if(dist < TrafficSim.distance*2){//&& dist > 0){
+				Double dist = Math.sqrt((temp.getY() - y) * (temp.getY() - y) + (temp.getX() - x) * (temp.getX() - x));
+				if(dist < TrafficSim2.distance*2){//&& dist > 0){
 					nearby.add(temp);
 				}
 			}

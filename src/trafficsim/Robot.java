@@ -14,170 +14,154 @@ import java.util.ArrayList;
  */
 public class Robot {
 
-	Terrain map;
-	int mapTarget;
-	double Xpos;
-	double Ypos;
-	double currentAngle; //in radians
-	double targetAngle;
-	Point target;
-	double targetDistance;
-	double targetX;
-	double targetY;
-	double speed = 0;
-	double mxspd = 50;
-	double accel = 15; 
-	double deacc = 25;
-	double turn = 0;
-	double mxturn = 1;
-	double speedOfCarInFront = mxspd;
-	double lookAhead = mxspd * 4;
-	Robot robotAhead;
-	int col, driveAheadCounter;
+	private Terrain map;
+	private int mapTarget;
+	private double Xpos;
+	private double Ypos;
+	private double currentAngle; // in radians
+	private double targetAngle;
+	private Point target;
+	private double targetDistance;
+	private double targetX;
+	private double targetY;
+	private double speed = 0;
+	private double mxspd = 50;
+	private double accel = 15;
+	private double deacc = 25;
+	private double turn = 0;
+	private double mxturn = 1;
+	private double speedOfCarInFront = mxspd;
+	private double lookAhead = mxspd * 4;
+	private Robot robotAhead;
+	private int col, driveAheadCounter;
+	private String ID;
+	private double deltaAngle;
 	/*
-	 * 	double speed = 0;
-	double mxspd = 50;
-	double accel = 1000000000; 
-	double deacc = 15;
-	double turn = 0;
-	double mxturn = 1;
-	double lookAhead = mxspd * 4;
-	Robot robotAhead;
+	 * double speed = 0; double mxspd = 50; double accel = 1000000000; double
+	 * deacc = 15; double turn = 0; double mxturn = 1; double lookAhead = mxspd
+	 * * 4; Robot robotAhead;
 	 */
-	
-	
-	//for catching orbit behavoirs
+
+	// for catching orbit behavoirs
 	double spinCounter = 0;
 	boolean goingLeft = true;
 
-	public Robot(double initX, double initY, double initAngle, Terrain terrain) {
+	public Robot(double initX, double initY, double initAngle, Terrain terrain,
+			String id) {
 		Xpos = initX;
 		Ypos = initY;
 		currentAngle = initAngle;
 		map = terrain;
 		findClosestPoint();
 		col = driveAheadCounter = 0;
+		ID = id;
+		deltaAngle = 0;
 	}
-	
-	public int getCol(){
+
+	public int getCol() {
 		return col;
 	}
-	
-	public void moveCalc() {
-		targetDistance = Math.sqrt((targetY - Ypos) * (targetY - Ypos) + (targetX - Xpos) * (targetX - Xpos));
+
+	private void moveCalc() {
+		targetDistance = Math.sqrt((targetY - Ypos) * (targetY - Ypos)
+				+ (targetX - Xpos) * (targetX - Xpos));
 
 		targetAngle = Math.atan2((targetY - Ypos), (targetX - Xpos));
-		
+
 		turn = mxturn * Math.sqrt(speed / mxspd);
-		
+
 		refractor();
 	}
 
-	void move(long delta) {
-		//start by moving
+
+	public void move(long delta) {
+		// start by moving
 		double step = ((double) delta) / 1000d;
+		// System.out.println("x:" + (Math.cos(currentAngle) * speed * step));
 		Xpos += Math.cos(currentAngle) * speed * step;
 		Ypos += Math.sin(currentAngle) * speed * step;
 		moveCalc();
 
-		//Using Brooks subsumption
+		// Using Brooks subsumption
 		if (redLightAhead() && mapTarget == 6) {
-			
+
 			turnToTarget(delta);
 			deaccelerate(delta);
-		} else if (nodeReached()) {
-			driveAheadCounter=0;
+		} else if (!redLightAhead() && mapTarget == 18) {
+			turnToTarget(delta);
+			deaccelerate(delta);
+		}
+
+		else if (nodeReached()) {
+			driveAheadCounter = 0;
 			nextTarget(delta);
-		} else if (driverAhead()){
-			if(TrafficSim.smartCarSim){
+		} else if (driverAhead()) {
+			if (TrafficSim2.smartCarSim) {
 				Robot robotInFront = nearestDriverAhead();
-				if(robotInFront != null)
-				{
-					if(Math.abs(robotInFront.currentAngle - currentAngle) < Math.PI/5){
+				if (robotInFront != null) {
+					if (Math.abs(robotInFront.currentAngle - currentAngle) < Math.PI / 5) {
 						drive(delta, robotInFront);
-					}
-					else 
+					} else
 						deaccelerate(delta);
-				}
-				else 
+				} else
 					accelerate(delta);
-//				if()
-//				deaccelerate(delta);
-				
-			}
-			else
+				// if()
+				// deaccelerate(delta);
+
+			} else
 				deaccelerate(delta);
 			turnToTarget(delta);
-			
 		} else if (goingInCircles()) {
-			driveAheadCounter=0;
+			driveAheadCounter = 0;
 			nextTarget(delta);
 		} else {
-			driveAheadCounter=0;
+			driveAheadCounter = 0;
 			turnToTarget(delta);
 			accelerate(delta);
 		}
 	}
+
 	private void reverseSpin() {
 		spinLeft(1.5);
-		
+
 	}
 
 	private boolean redLightAhead() {
-		return TrafficSim.redlight;
+		return TrafficSim2.redlight;
 	}
 
-	boolean driverAhead() {
-		ArrayList<Robot> candidates = new ArrayList<>();
-		candidates = map.nearbyBots(this.Ypos, this.Xpos);
-		if (candidates.size() <= 1) {
-			//No drivers nearby at all.
+	private boolean driverAhead() {
+		Robot near = nearestDriverAhead();
+		if (near == null)
 			return false;
-		} else {
-			//find the closest robot
-			for (int i = 0; i < candidates.size(); i++) {
-				Robot robot = candidates.get(i);
-				if(robot == this) //ignore itself
-					continue;
-				double robotY = robot.Ypos;
-				double robotX = robot.Xpos;
-				double robotDistance = Math.sqrt((robotY - Ypos) * (robotY - Ypos) + (robotX - Xpos) * (robotX - Xpos));
-				double robotAngle = Math.atan2((robotY - Ypos), (robotX - Xpos));
-				if (Math.abs(robotAngle-currentAngle) < TrafficSim.angle) {
-					if(robotDistance < 15)
-						return true;
-					if (robotDistance < TrafficSim.distance*speed*0.1){
-						col = 1;
-						robot.col = 2;
-						return true;
-					}
-				}
-			}
-			col = 0;
-			return false;
-		}
+		else
+			return true;
 	}
-	Robot nearestDriverAhead() {
+
+	private Robot nearestDriverAhead() {
 		ArrayList<Robot> candidates = new ArrayList<>();
 		candidates = map.nearbyBots(this.Ypos, this.Xpos);
 		if (candidates.size() <= 1) {
-			//No drivers nearby at all.
+			// No drivers nearby at all.
 			return null;
 		} else {
-			//find the closest robot
+			// find the closest robot
 			Robot next = null;
 			for (int i = 0; i < candidates.size(); i++) {
 				Robot robot = candidates.get(i);
-				if(robot == this) //ignore itself
+				if (robot == this) // ignore itself
 					continue;
 				double robotY = robot.Ypos;
 				double robotX = robot.Xpos;
-				double robotDistance = Math.sqrt((robotY - Ypos) * (robotY - Ypos) + (robotX - Xpos) * (robotX - Xpos));
-				double robotAngle = Math.atan2((robotY - Ypos), (robotX - Xpos));
-				if (Math.abs(robotAngle-currentAngle) < TrafficSim.angle) {
-					if(robotDistance < 15)
+				double robotDistance = Math.sqrt((robotY - Ypos)
+						* (robotY - Ypos) + (robotX - Xpos) * (robotX - Xpos));
+				double robotAngle = Math
+						.atan2((robotY - Ypos), (robotX - Xpos));
+				if (Math.abs(robotAngle - currentAngle) < TrafficSim2.angle) {
+					if (robotDistance < TrafficSim2.nearestDist)
 						return robot;
-					if (robotDistance < TrafficSim.distance*speed*0.1+6 && (next == null || distanceTo(next)> robotDistance)){
+					if (robotDistance < TrafficSim2.distance * speed * 0.1 + 6
+							&& (next == null || distanceTo(next) > robotDistance)) {
 						col = 1;
 						robot.col = 2;
 						next = robot;
@@ -188,15 +172,15 @@ public class Robot {
 		}
 	}
 
-	boolean nodeReached() {
+	private boolean nodeReached() {
 		return targetDistance < 10;
 	}
 
-	boolean goingInCircles() {
+	private boolean goingInCircles() {
 		return spinCounter > Math.PI;
 	}
 
-	void nextTarget(long delta) {
+	private void nextTarget(long delta) {
 		mapTarget++;
 		if (mapTarget >= map.getLength()) {
 			mapTarget = 0;
@@ -210,81 +194,85 @@ public class Robot {
 		move(delta);
 	}
 
-	void turnToTarget(long delta) {
+	private void turnToTarget(long delta) {
 		double step = ((double) delta) / 1000d;
 		double rotate = turn * step;
 		if (Math.abs(currentAngle - targetAngle) < rotate) {
 			rotate = Math.abs(currentAngle - targetAngle);
 		}
 
-		if (targetAngle + Math.PI == currentAngle || targetAngle - Math.PI == currentAngle) {
-			//Directly behind us, turn!
+		if (targetAngle + Math.PI == currentAngle
+				|| targetAngle - Math.PI == currentAngle) {
+			// Directly behind us, turn!
 			spinRight(rotate);
 		} else if (targetAngle > 0) {
-			if (currentAngle > targetAngle || currentAngle < targetAngle - Math.PI) {
+			if (currentAngle > targetAngle
+					|| currentAngle < targetAngle - Math.PI) {
 				spinRight(rotate);
 			} else {
 				spinLeft(rotate);
 			}
 		} else {
-			if (currentAngle < targetAngle || currentAngle > targetAngle + Math.PI) {
+			if (currentAngle < targetAngle
+					|| currentAngle > targetAngle + Math.PI) {
 				spinLeft(rotate);
 			} else {
 				spinRight(rotate);
 			}
 		}
 	}
-	
-	boolean isDriving(){
-		return (speed > 0) ;
+
+	private boolean isDriving() {
+		return (speed > 0);
 	}
-	
-	double getSpeed(){
+
+	private double getSpeed() {
 		return speed;
 	}
-	
-	double distanceTo(Robot robot){
-		return Math.sqrt((robot.Ypos - Ypos) * (robot.Ypos - Ypos) + (robot.Xpos - Xpos) * (robot.Xpos - Xpos));
+
+	private double distanceTo(Robot robot) {
+		return Math.sqrt((robot.Ypos - Ypos) * (robot.Ypos - Ypos)
+				+ (robot.Xpos - Xpos) * (robot.Xpos - Xpos));
 	}
-	
-	
+
 	private void drive(long delta, Robot robot) {
-		if(robot == null)
+		if (robot == null)
 			accelerate(delta);
-		else if(speed > robot.getSpeed())
+		else if (speed > robot.getSpeed())
 			deaccelerate(delta);
 		else
 			accelerate(delta);
-		
 
 	}
 
-	void accelerate(long delta) {
+	private void accelerate(long delta) {
 		double step = ((double) delta) / 1000d;
 		speed += accel * step;
 		if (speed > mxspd) {
 			speed = mxspd;
 		}
-		
+
 	}
-	
-	void deaccelerate(long delta){
+
+	private void deaccelerate(long delta) {
 		double step = ((double) delta) / 1000d;
-		speed -= deacc 	* step;
-		if (speed < 0) {
-			speed = 0;
-		}
-	}
-	void deaccelerate(long delta, double dist){
-		double step = ((double) delta) / 1000d;
-		speed -= deacc 	 * step* (5/dist);
+		speed -= deacc * step;
 		if (speed < 0) {
 			speed = 0;
 		}
 	}
 
-	void spinRight(double rotate) {
-//		number of right rotation is here, named rotate
+	private void deaccelerate(long delta, double dist) {
+		double step = ((double) delta) / 1000d;
+		speed -= deacc * step * (5 / dist);
+		if (speed < 0) {
+			speed = 0;
+		}
+	}
+
+	private void spinRight(double rotate) {
+		// number of right rotation is here, named rotate
+		deltaAngle = rotate;
 		currentAngle -= rotate;
 		if (!goingLeft) {
 			spinCounter += rotate;
@@ -294,8 +282,9 @@ public class Robot {
 		}
 	}
 
-	void spinLeft(double rotate) {
-//		number of left rotation is here, named rotate
+	private void spinLeft(double rotate) {
+		// number of left rotation is here, named rotate
+		deltaAngle = -rotate;
 		currentAngle += rotate;
 		if (goingLeft) {
 			spinCounter += rotate;
@@ -305,7 +294,8 @@ public class Robot {
 		}
 	}
 
-	private void refractor() { //makes sure that the angle is always inside [-PI, PI]
+	private void refractor() { // makes sure that the angle is always inside
+								// [-PI, PI]
 		if (currentAngle > Math.PI) {
 			currentAngle -= 2 * Math.PI;
 		} else if (currentAngle < -Math.PI) {
@@ -325,9 +315,11 @@ public class Robot {
 			Point q = map.get(j);
 
 			double robPAngle = Math.atan2((p.getY() - Ypos), (p.getX() - Xpos));
-			double PQAngle = Math.atan2((q.getY() - p.getY()), (q.getX() - p.getX()));
-			double angle = Math.abs(Math.atan2(Math.sin(PQAngle - robPAngle), Math.cos(PQAngle - robPAngle)));
-			//System.out.println(i + ": " + angle);
+			double PQAngle = Math.atan2((q.getY() - p.getY()),
+					(q.getX() - p.getX()));
+			double angle = Math.abs(Math.atan2(Math.sin(PQAngle - robPAngle),
+					Math.cos(PQAngle - robPAngle)));
+			// System.out.println(i + ": " + angle);
 			if (angle < shortestDistance) {
 				shortestDistance = angle;
 				targetID = i;
@@ -335,5 +327,42 @@ public class Robot {
 		}
 		mapTarget = targetID - 1;
 		nextTarget(0);
+	}
+
+	/**
+	 * GETTERS
+	 * 
+	 * 
+	 */
+	public double getX() {
+		return Xpos;
+	}
+
+	public double getY() {
+		return Ypos;
+	}
+
+	public double getAngle() {
+		return currentAngle;
+	}
+
+	public int[] getMotor() {
+		int[] a = new int[2];
+		if (Math.abs(deltaAngle) < 0.01) {
+			return new int[] { 450, 450 };
+
+		}
+		if (deltaAngle > 0) {
+			a[0] = (int) ((speed * Math.sin(deltaAngle) / Math
+					.sin(2 * deltaAngle)) - 4) * 10;
+			a[1] = (int) ((speed * Math.sin(deltaAngle) / Math
+					.sin(2 * deltaAngle)) + 4) * 10;
+		} else {
+			a[0] = (int) ((speed * Math.sin(deltaAngle) / Math
+					.sin(2 * deltaAngle)) + 4) * 10;
+			a[1] = (int) ((speed * Math.sin(deltaAngle) / Math
+					.sin(2 * deltaAngle)) - 4) * 10;
+		}
+		return a;
 	}
 }
