@@ -142,7 +142,7 @@
 //						prototypeY + size * Math.sin(a) - 1 * Math.cos(a));
 //				GL11.glVertex2d(prototypeX - size * Math.cos(a) + 3 * Math.sin(a),
 //						prototypeY - size * Math.sin(a) - size * Math.cos(a));
-//				GL11.glVertex2d(prototypeX - size * Math.cos(a) - size *x Math.sin(a),
+//				GL11.glVertex2d(prototypeX - size * Math.cos(a) - size * Math.sin(a),
 //						prototypeY - size * Math.sin(a) + size * Math.cos(a));
 //				GL11.glEnd();
 //				GL11.glColor3f(1, 1, 0);
@@ -150,15 +150,15 @@
 ////				GL11.glPushMatrix();
 ////				GL11.glRotated(a, 0, 0, 1);
 //				
-//				GL11.glBegin(GL11.GL_TRIANGLE_FAN);
-//				GL11.glVertex2d(prototypeX + size * Math.cos(a) - 1 * Math.sin(a),
-//						prototypeY + size * Math.sin(a) + 1 * Math.cos(a));
-//				GL11.glVertex2d(prototypeX + distance * Math.cos(a),
-//						prototypeY + size * Math.sin(a)  -10);
-//				GL11.glVertex2d(prototypeX + size * Math.cos(a) -10,
-//						prototypeY + size * Math.sin(a) +10);
-//				
-//				GL11.glEnd();
+////				GL11.glBegin(GL11.GL_TRIANGLE_FAN);
+////				GL11.glVertex2d(prototypeX + size * Math.cos(a) - 1 * Math.sin(a),
+////						prototypeY + size * Math.sin(a) + 1 * Math.cos(a));
+////				GL11.glVertex2d(prototypeX + distance * Math.cos(a),
+////						prototypeY + size * Math.sin(a)  -10);
+////				GL11.glVertex2d(prototypeX + size * Math.cos(a) -10,
+////						prototypeY + size * Math.sin(a) +10);
+////				
+////				GL11.glEnd();
 //				
 ////				GL11.glPopMatrix();
 //				

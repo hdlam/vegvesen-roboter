@@ -120,6 +120,7 @@ public class Terrain {
 		return robotFinder.get(loc);
 	}
 	
+	
 	public ArrayList<Robot> nearbyBots(double y, double x){
 		ArrayList<Robot> nearby = new ArrayList<Robot>();
 		for (int i = 0; i < robotFinder.size(); i++) {
