@@ -67,16 +67,16 @@ public class Robot {
 		ID = id;
 		deltaAngle = 0;
 		minDist = new Polygon(new float[]{
-				(float) (Xpos-TrafficSim2.size/2-2),(float) (Ypos-TrafficSim2.size/2-2),
-				(float) (Xpos-TrafficSim2.size/2-2),(float) (Ypos+TrafficSim2.size/2+2),
-				(float) (Xpos+TrafficSim2.size/2+2),(float) (Ypos+TrafficSim2.size/2+2),
-				(float) (Xpos+TrafficSim2.size/2+2),(float) (Ypos-TrafficSim2.size/2-2),
+				(float) (Xpos-ts.size/2-2),(float) (Ypos-ts.size/2-2),
+				(float) (Xpos-ts.size/2-2),(float) (Ypos+ts.size/2+2),
+				(float) (Xpos+ts.size/2+2),(float) (Ypos+ts.size/2+2),
+				(float) (Xpos+ts.size/2+2),(float) (Ypos-ts.size/2-2),
 				});
 		maxDist = new Polygon(new float[]{
 				(float) (Xpos),(float) (Ypos),
 				(float) (Xpos),(float) (Ypos),
-				(float) (Xpos+TrafficSim2.size/2),(float) (Ypos+TrafficSim2.size/2),
-				(float) (Xpos+TrafficSim2.size/2),(float) (Ypos-TrafficSim2.size/2),
+				(float) (Xpos+ts.size/2),(float) (Ypos+ts.size/2),
+				(float) (Xpos+ts.size/2),(float) (Ypos-ts.size/2),
 		});
 	}
 	
@@ -92,15 +92,23 @@ public class Robot {
 	public void draw(Graphics g) {
 		if(getCol() ==1)
 			g.setColor(Color.red);
-		else
+		else if(speed <= 1)
+			g.setColor(Color.blue);
+		else if(speed <= 25)
+			g.setColor(Color.cyan);
+		else if(getCol() == 0)
 			g.setColor(Color.white);
-		g.drawOval((float)getX()-TrafficSim2.size/2, (float)getY()-TrafficSim2.size/2, TrafficSim2.size, TrafficSim2.size);
+		else
+			g.setColor(Color.yellow);
+		g.fillOval((float)getX()-ts.size/2, (float)getY()-ts.size/2, ts.size, ts.size);
 		
 		if(ts.render)
 		{
 		g.draw(minDist);
 		g.draw(maxDist);
 		}
+		
+		
 	}
 
 	public int getCol() {
@@ -117,24 +125,17 @@ public class Robot {
 
 		refractor();
 	}
-
-
-	public void move(long delta) {
-		// start by moving
-		double step = ((double) delta) / 1000d;
-		// System.out.println("x:" + (Math.cos(currentAngle) * speed * step));
-		Xpos += Math.cos(currentAngle) * speed * step;
-		Ypos += Math.sin(currentAngle) * speed * step;
-		moveCalc();
-		
+	
+	
+	private void calculateHitBoxes(double step){
 		float px = (float) Xpos;
 		float py = (float) Ypos;
-		double l = (step*speed*3)*TrafficSim2.size/2+3*TrafficSim2.size/2;
+		double l = (step*speed*3)*ts.size/2+3*ts.size/2;
 		double a = Math.toRadians(Math.toDegrees(currentAngle)+90);
-		double sinA = Math.sin(a)*(TrafficSim2.size*2*step*speed+TrafficSim2.size/2+1);//=cos(b) & -cos(c)
-		double sinC = Math.cos(a)*(TrafficSim2.size*2*step*speed+TrafficSim2.size/2+1);//=sin(c) & -sin(b)
-		float px2 = (float)(px+sinA*l/(TrafficSim2.size/2));
-		float py2 = (float)(py-sinC*l/(TrafficSim2.size/2));
+		double sinA = Math.sin(a)*(ts.size*2*step*speed+ts.size/2+1);//=cos(b) & -cos(c)
+		double sinC = Math.cos(a)*(ts.size*2*step*speed+ts.size/2+1);//=sin(c) & -sin(b)
+		float px2 = (float)(px+sinA*l/(ts.size/2));
+		float py2 = (float)(py-sinC*l/(ts.size/2));
 		
 		maxDist =  new Polygon(new float[]{
 				(float) (Xpos),(float) (Ypos),
@@ -148,11 +149,11 @@ public class Robot {
 		
 		
 		
-		sinA = Math.sin(a)*(TrafficSim2.size/2);//=cos(b) & -cos(c)
-		sinC = Math.cos(a)*(TrafficSim2.size/2);//=sin(c) & -sin(b)
-		l = TrafficSim2.size/2;
-		px2 = (float)(sinA*l/(TrafficSim2.size/2));
-		py2 = (float)(sinC*l/(TrafficSim2.size/2));
+		sinA = Math.sin(a)*(ts.size/2);//=cos(b) & -cos(c)
+		sinC = Math.cos(a)*(ts.size/2);//=sin(c) & -sin(b)
+		l = ts.size/2;
+		px2 = (float)(sinA*l/(ts.size/2));
+		py2 = (float)(sinC*l/(ts.size/2));
 		minDist = new Polygon(new float[]{
 				(float) (px-px2+sinC), (float) (py+py2+sinA),
 				(float) (px+px2+sinC), (float) (py-py2+sinA),
@@ -160,20 +161,47 @@ public class Robot {
 				(float) (px-px2-sinC), (float) (py+py2-sinA)
 		});
 		
+	}
+	
+	
+	private void checkCrash(){
+		boolean crash = false;
 		ArrayList<Robot> candidates = ts.prototype;
 		for (Robot robot : candidates) {
 			if(robot == this)
 				continue;
 			if(robot.getMinDist().intersects(this.getMinDist()))
-				col = 1;
+				crash = true;
 		}
+		if(crash)
+			col = 1;
+		else
+			col = 0;
+		
+	}
+
+
+	public void move(long delta) {
+		// start by moving
+		double step = ((double) delta) / 1000d;
+		// System.out.println("x:" + (Math.cos(currentAngle) * speed * step));
+		Xpos += Math.cos(currentAngle) * speed * step;
+		Ypos += Math.sin(currentAngle) * speed * step;
+		moveCalc();
+		//reposition the hitboxes
+		calculateHitBoxes(step);
+		
+		//setting the color to red if crash
+		checkCrash();
 
 		// Using Brooks subsumption
-		if (redLightAhead() && mapTarget == 6) {
+		if (redLightAhead() && mapTarget == 6&& targetDistance < 120) {
+			col = 2;
 
 			turnToTarget(delta);
 			deaccelerate(delta);
-		} else if (!redLightAhead() && mapTarget == 18) {
+		} else if (!redLightAhead() && mapTarget == 18 && targetDistance < 120) {
+			col = 2;
 			turnToTarget(delta);
 			deaccelerate(delta);
 		}
@@ -185,13 +213,19 @@ public class Robot {
 			if (TrafficSim2.smartCarSim) {
 				Robot robotInFront = nearestDriverAhead();
 				if (robotInFront != null) {
+					if(Math.abs(Math.abs(currentAngle) - Math.abs(robotInFront.getAngle())) < Math.PI/2)
 						drive(delta, robotInFront);
+					else{
+						deaccelerate(delta);
+					}
 				} else
 					accelerate(delta);
 
 			} else
 				deaccelerate(delta);
 			turnToTarget(delta);
+			
+			
 		} else if (goingInCircles()) {
 			driveAheadCounter = 0;
 			nextTarget(delta);
@@ -216,16 +250,26 @@ public class Robot {
 	}
 
 	private Robot nearestDriverAhead() {
+//		ArrayList<Robot> candidates = ts.prototype;
+//		for (Robot robot : candidates) {
+//			if(robot == this)
+//				continue;
+//			if(robot.getMinDist().intersects(this.getMaxDist()))	
+//					return robot;
+//		}
+//		return null;
 		ArrayList<Robot> candidates = ts.prototype;
+		Robot rob = null;
 		for (Robot robot : candidates) {
 			if(robot == this)
 				continue;
-			if(robot.getMinDist().intersects(this.getMaxDist()))
+			if(robot.getMinDist().intersects(this.getMaxDist())){
+				if(rob == null || distanceTo(rob)> distanceTo(robot))
+					rob = robot;
 				
-					return robot;
+			}
 		}
-		return null;
-		
+		return rob;
 		
 //		if (candidates.size() <= 1) {
 //			// No drivers nearby at all.
@@ -425,7 +469,8 @@ public class Robot {
 	}
 
 	public double getAngle() {
-		return currentAngle;
+			return currentAngle;
+		
 	}
 
 	public int[] getMotor() {

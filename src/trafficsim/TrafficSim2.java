@@ -34,15 +34,16 @@ public class TrafficSim2 extends BasicGame{
 	Terrain map;
 	ArrayList<Robot> prototype;
 	static boolean redlight, smartCarSim; 
-	final static int size = 20;
+	final int size = 20;
 	int w,h;
 	boolean zKeyIsDown, xKeyIsDown, render;
 	Input input;
+	double angle;
 	//800 * 652
 	//Threshold values
 	static double distance;
-	static double angle;
 	static double nearestDist;
+	private int numOfBots = 8;
 	
 	
 	public TrafficSim2(String title) {
@@ -65,7 +66,7 @@ public class TrafficSim2 extends BasicGame{
 	w = 800; h = 800;
 	
 	
-	for (int i = 0; i < 8; i++) {
+	for (int i = 0; i < numOfBots; i++) {
 		prototype.add(new Robot(w * Math.random(), h * Math.random(), 2 * Math.PI * Math.random() - Math.PI, map, "test", this));
 	}
 	input = gc.getInput();
@@ -128,11 +129,16 @@ public class TrafficSim2 extends BasicGame{
 		if(input.isKeyPressed(Input.KEY_Z))
 			smartCarSim =!smartCarSim;
 		
-		if(getTime()%1000 == 0){
-			redlight = !redlight;
-		}
 		if(input.isKeyPressed(Input.KEY_R)){
 			render = !render;
+		}
+		
+		if(input.isKeyPressed(Input.KEY_P)){
+			prototype = new ArrayList<Robot>();
+			for (int i = 0; i < numOfBots; i++) {
+				prototype.add(new Robot(w * Math.random(), h * Math.random(), 2 * Math.PI * Math.random() - Math.PI, map, "test", this));
+				
+			}
 		}
 	}
 	
