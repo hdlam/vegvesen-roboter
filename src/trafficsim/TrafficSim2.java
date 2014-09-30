@@ -140,7 +140,14 @@ public class TrafficSim2 extends BasicGame{
 				
 			}
 		}
+		
+		if(input.isKeyDown((Input.KEY_1))){
+			prototype.get(0).setPosition(300, 300);
+		}
 	}
+	
+	
+	
 	
 	public long getTime() {
 		return (Sys.getTime() * 1000) / Sys.getTimerResolution();

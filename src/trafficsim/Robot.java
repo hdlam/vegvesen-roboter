@@ -80,7 +80,10 @@ public class Robot {
 		});
 	}
 	
-	
+	public void setPosition(double x, double y){
+		Xpos = x;
+		Ypos = y;
+	}
 	
 	Polygon getMinDist(){
 		return minDist;
@@ -100,8 +103,8 @@ public class Robot {
 			g.setColor(Color.white);
 		else
 			g.setColor(Color.yellow);
-		g.fillOval((float)getX()-ts.size/2, (float)getY()-ts.size/2, ts.size, ts.size);
-		
+		g.drawOval((float)getX()-ts.size/2, (float)getY()-ts.size/2, ts.size, ts.size);
+		g.drawString(speed+"", (float)getX(), (float)getY());
 		if(ts.render)
 		{
 		g.draw(minDist);
@@ -199,11 +202,11 @@ public class Robot {
 			col = 2;
 
 			turnToTarget(delta);
-			deaccelerate(delta);
+			deaccelerate(delta,0);
 		} else if (!redLightAhead() && mapTarget == 18 && targetDistance < 120) {
 			col = 2;
 			turnToTarget(delta);
-			deaccelerate(delta);
+			deaccelerate(delta,0);
 		}
 
 		else if (nodeReached()) {
@@ -216,13 +219,13 @@ public class Robot {
 					if(Math.abs(Math.abs(currentAngle) - Math.abs(robotInFront.getAngle())) < Math.PI/2)
 						drive(delta, robotInFront);
 					else{
-						deaccelerate(delta);
+						deaccelerate(delta,0);
 					}
 				} else
-					accelerate(delta);
+					accelerate(delta, mxspd);
 
 			} else
-				deaccelerate(delta);
+				deaccelerate(delta, 0);
 			turnToTarget(delta);
 			
 			
@@ -232,7 +235,7 @@ public class Robot {
 		} else {
 			driveAheadCounter = 0;
 			turnToTarget(delta);
-			accelerate(delta);
+			accelerate(delta, mxspd);
 		}
 	}
 
@@ -370,28 +373,28 @@ public class Robot {
 
 	private void drive(long delta, Robot robot) {
 		if (robot == null)
-			accelerate(delta);
+			accelerate(delta, mxspd);
 		else if (speed > robot.getSpeed())
-			deaccelerate(delta);
-		else
-			accelerate(delta);
+			deaccelerate(delta,robot.getSpeed());
+		else if(speed < robot.getSpeed())
+			accelerate(delta, robot.getSpeed());
 
 	}
 
-	private void accelerate(long delta) {
+	private void accelerate(long delta, double maxspeed) {
 		double step = ((double) delta) / 1000d;
 		speed += accel * step;
-		if (speed > mxspd) {
-			speed = mxspd;
+		if (speed > maxspeed) {
+			speed = maxspeed;
 		}
 
 	}
 
-	private void deaccelerate(long delta) {
+	private void deaccelerate(long delta, double minspeed) {
 		double step = ((double) delta) / 1000d;
 		speed -= deacc * step;
-		if (speed < 0) {
-			speed = 0;
+		if (speed < minspeed) {
+			speed = minspeed;
 		}
 	}
 
